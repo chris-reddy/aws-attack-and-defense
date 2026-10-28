@@ -1,0 +1,30 @@
+{
+  "Statement": [
+    {
+      "Action": [
+        "iam:AddRoleToInstanceProfile",
+        "iam:ListInstanceProfiles",
+        "iam:ListRoles",
+        "iam:PassRole",
+        "iam:RemoveRoleFromInstanceProfile"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "ec2:AssociateIamInstanceProfile",
+        "ec2:CreateKeyPair",
+        "ec2:DescribeIamInstanceProfileAssociations",
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs",
+        "ec2:RunInstances"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ],
+  "Version": "2012-10-17"
+}

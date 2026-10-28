@@ -1,0 +1,28 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "ReadOnlyIamEc2",
+            "Effect": "Allow",
+            "Action": [
+                "iam:ListInstanceProfiles",
+                "iam:ListRoles",
+                "ec2:DescribeIamInstanceProfileAssociations",
+                "ec2:DescribeInstances",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "PassOnlyNonPrivilegedRole",
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "arn:aws:iam::ACCOUNT_ID:role/cg-ec2-meek-role-cgidzssllgps85",
+            "Condition": {
+                "StringEquals": { "iam:PassedToService": "ec2.amazonaws.com" }
+            }
+        }
+    ]
+}
