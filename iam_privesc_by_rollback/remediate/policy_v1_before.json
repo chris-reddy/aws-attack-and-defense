@@ -1,0 +1,22 @@
+{
+    "PolicyVersion": {
+        "Document": {
+            "Statement": [
+                {
+                    "Action": [
+                        "iam:Get*",
+                        "iam:List*",
+                        "iam:SetDefaultPolicyVersion"
+                    ],
+                    "Effect": "Allow",
+                    "Resource": "*",
+                    "Sid": "IAMPrivilegeEscalationByRollback"
+                }
+            ],
+            "Version": "2012-10-17"
+        },
+        "VersionId": "v1",
+        "IsDefaultVersion": true,
+        "CreateDate": "2026-10-27T17:18:22Z"
+    }
+}

@@ -1,0 +1,13 @@
+title: AWS IAM Privilege Escalation via Policy Version Rollback
+status: experimental
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: SetDefaultPolicyVersion
+  condition: selection
+level: high
+falsepositives:
+  - Legitimate administrators intentionally reverting a policy to a prior version

@@ -1,0 +1,7 @@
+**/start.txt
+*.tfvars.json
+credentials.txt
+.env
+# raw prowler scan dumps (contain account id in filenames)
+**/scans/compliance/
+**/scans/**/*.csv
