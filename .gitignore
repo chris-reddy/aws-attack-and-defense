@@ -6,3 +6,5 @@ credentials.txt
 **/scans/compliance/
 **/scans/**/*.csv
 iam_privesc_by_attachment/scans/*.ocsf.json
+**/scans/*.ocsf.json
+ec2_ssrf/scans/

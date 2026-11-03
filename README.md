@@ -20,8 +20,8 @@ full loop:
 
 - **Exploit** — the attack path, with the exact commands and the misconfiguration behind it.
 - **Detect** — the CloudTrail events the attack generated, the Athena query (and Sigma rule) that catches them, and whether GuardDuty saw it natively.
-- **Remediate** — the fix written as Terraform, with a before/after IAM policy diff.
-- **Verify** — the original exploit re-run, now failing with `AccessDenied`.
+- **Remediate** — the fix written as Terraform, with a before/after diff.
+- **Verify** — the original exploit re-run, now failing.
 
 ---
 
@@ -31,6 +31,7 @@ full loop:
 | --- | --- | --- | --- | --- | --- |
 | 1 | [`iam_privesc_by_rollback`](iam_privesc_by_rollback/) | IAM policy version rollback | ❌ Not detected | ✅ | [Read](writeups/01-iam-privesc-by-rollback.md) |
 | 2 | [`iam_privesc_by_attachment`](iam_privesc_by_attachment/) | Instance-profile role swap + `iam:PassRole` | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/02-iam-privesc-by-attachment.md) |
+| 3 | [`ec2_ssrf`](ec2_ssrf/) | SSRF → instance metadata credential theft | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/03-ec2-ssrf.md) |
 
 *More scenarios in progress.*
 
@@ -38,26 +39,29 @@ full loop:
 
 ## Headline results
 
-- **2** scenarios completed with the full exploit → detect → remediate → verify loop
-- **3** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/))
-- **2** custom CloudTrail/Athena detections written, with Sigma rule equivalents
-- **GuardDuty native coverage:** 0 of 2 privilege-escalation *techniques* detected natively; 1 of 2 scenarios flagged at the credential-exfiltration stage only — demonstrating why custom control-plane detection is required alongside managed tooling
+- **3** scenarios completed with the full exploit → detect → remediate → verify loop
+- **5** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/))
+- **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
+- **GuardDuty native coverage:** 0 of 3 attack *techniques* detected natively; 2 of 3 scenarios flagged only at the credential-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
 <!-- Prowler before/after critical+high counts: fill in from your scan reports once finalized. -->
 
 ---
 
 ## Key findings
 
-- **Control-plane privilege escalation hides from behaviour-based detection.**
-  GuardDuty missed both IAM privesc techniques. It caught credential
-  exfiltration in scenario 2 (the symptom) but not the `AddRoleToInstanceProfile`
-  role swap that produced the credentials (the cause). Layered detection —
-  native *and* custom — is not optional.
+- **Control-plane attacks hide from behaviour-based detection.** GuardDuty missed
+  every attack *technique* in this lab. It flagged credential exfiltration in
+  scenarios 2 and 3 (the symptom) but never the IAM privesc or the SSRF that
+  produced those credentials (the cause). Layered detection — native *and*
+  custom — is not optional.
 - **`iam:PassRole` on `Resource: "*"` is a critical finding.** It is the quiet
   enabler behind most AWS role-based escalation. Scoping it closes an entire
   attack class.
-- **Fixes belong in the permission, not the artifact.** Removing a dangerous
-  action is more durable than cleaning up one bad policy version or role.
+- **IMDSv2 is not optional.** A single instance attribute
+  (`http_tokens = required`) defeats SSRF-based credential theft outright.
+- **Some attacks never touch the API log.** SSRF against instance metadata leaves
+  no CloudTrail trace — only the *use* of the stolen credentials does. Detection
+  has to follow the credential, not the exploit.
 
 ---
 
@@ -81,7 +85,7 @@ Setup evidence is in [`setup/`](setup/).
 ├── README.md        scenario summary, attack path, root cause, ATT&CK mapping
 ├── exploit/         commands + screenshots of the attack succeeding
 ├── detect/          Athena queries, Sigma rules, GuardDuty findings
-├── remediate/       Terraform fix + before/after IAM policy diff
+├── remediate/       Terraform fix + before/after diff
 ├── verify/          the exploit re-run, now failing
 └── scans/           Prowler posture report
 writeups/            narrative incident-report write-ups
@@ -94,5 +98,5 @@ setup/               lab build evidence (CloudTrail, GuardDuty, toolchain)
 
 This lab runs in a dedicated, isolated AWS account. CloudGoat deliberately
 creates vulnerable resources; they are torn down after each scenario. Account
-IDs and credentials in screenshots are redacted, and live credential files are
-excluded from version control via `.gitignore`.
+IDs, credentials, and source IPs in screenshots are redacted, and live
+credential files are excluded from version control via `.gitignore`.
