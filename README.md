@@ -32,6 +32,7 @@ full loop:
 | 1 | [`iam_privesc_by_rollback`](iam_privesc_by_rollback/) | IAM policy version rollback | ❌ Not detected | ✅ | [Read](writeups/01-iam-privesc-by-rollback.md) |
 | 2 | [`iam_privesc_by_attachment`](iam_privesc_by_attachment/) | Instance-profile role swap + `iam:PassRole` | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/02-iam-privesc-by-attachment.md) |
 | 3 | [`ec2_ssrf`](ec2_ssrf/) | SSRF → instance metadata credential theft | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/03-ec2-ssrf.md) |
+| 4 | [`cloud_breach_s3`](cloud_breach_s3/) | Reverse-proxy SSRF → metadata → S3 data breach | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/04-cloud-breach-s3.md) |
 
 *More scenarios in progress.*
 
@@ -39,29 +40,30 @@ full loop:
 
 ## Headline results
 
-- **3** scenarios completed with the full exploit → detect → remediate → verify loop
-- **5** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/))
+- **4** scenarios completed with the full exploit → detect → remediate → verify loop
+- **6** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/))
 - **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
-- **GuardDuty native coverage:** 0 of 3 attack *techniques* detected natively; 2 of 3 scenarios flagged only at the credential-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
-<!-- Prowler before/after critical+high counts: fill in from your scan reports once finalized. -->
+- **GuardDuty native coverage:** 0 of 4 attack *techniques* detected natively; 3 of 4 scenarios flagged only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
 
 ---
 
 ## Key findings
 
 - **Control-plane attacks hide from behaviour-based detection.** GuardDuty missed
-  every attack *technique* in this lab. It flagged credential exfiltration in
-  scenarios 2 and 3 (the symptom) but never the IAM privesc or the SSRF that
-  produced those credentials (the cause). Layered detection — native *and*
-  custom — is not optional.
+  every attack *technique* in this lab. It flagged credential and data
+  exfiltration in scenarios 2–4 (the symptom) but never the IAM privesc or the
+  SSRF that produced those credentials (the cause). Layered detection — native
+  *and* custom — is not optional.
+- **IMDSv2 is not optional.** A single instance attribute
+  (`http_tokens = required`) defeats SSRF-based credential theft outright — the
+  exact class of attack behind the Capital One breach (scenario 4).
 - **`iam:PassRole` on `Resource: "*"` is a critical finding.** It is the quiet
   enabler behind most AWS role-based escalation. Scoping it closes an entire
   attack class.
-- **IMDSv2 is not optional.** A single instance attribute
-  (`http_tokens = required`) defeats SSRF-based credential theft outright.
-- **Some attacks never touch the API log.** SSRF against instance metadata leaves
-  no CloudTrail trace — only the *use* of the stolen credentials does. Detection
-  has to follow the credential, not the exploit.
+- **Detection is a noise problem.** Several detections only became useful after
+  filtering out legitimate service traffic (e.g. Athena reading its own results
+  bucket). Real detection engineering is as much about suppressing false
+  positives as finding the signal.
 
 ---
 
