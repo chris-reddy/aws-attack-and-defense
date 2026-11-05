@@ -1,0 +1,13 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Sid": "DenySnapshotExfil",
+    "Effect": "Deny",
+    "Action": [
+      "rds:CreateDBSnapshot",
+      "rds:RestoreDBInstanceFromDBSnapshot",
+      "rds:ModifyDBInstance"
+    ],
+    "Resource": "*"
+  }]
+}

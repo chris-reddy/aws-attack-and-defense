@@ -20,7 +20,7 @@ full loop:
 
 - **Exploit** — the attack path, with the exact commands and the misconfiguration behind it.
 - **Detect** — the CloudTrail events the attack generated, the Athena query (and Sigma rule) that catches them, and whether GuardDuty saw it natively.
-- **Remediate** — the fix written as Terraform, with a before/after diff.
+- **Remediate** — the fix written as Terraform/IAM, with a before/after diff.
 - **Verify** — the original exploit re-run, now failing.
 
 ---
@@ -33,6 +33,7 @@ full loop:
 | 2 | [`iam_privesc_by_attachment`](iam_privesc_by_attachment/) | Instance-profile role swap + `iam:PassRole` | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/02-iam-privesc-by-attachment.md) |
 | 3 | [`ec2_ssrf`](ec2_ssrf/) | SSRF → instance metadata credential theft | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/03-ec2-ssrf.md) |
 | 4 | [`cloud_breach_s3`](cloud_breach_s3/) | Reverse-proxy SSRF → metadata → S3 data breach | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/04-cloud-breach-s3.md) |
+| 5 | [`codebuild_secrets`](codebuild_secrets/) | CodeBuild secret leak → RDS snapshot exfiltration | ❌ Not detected | ✅ | [Read](writeups/05-codebuild-secrets.md) |
 
 *More scenarios in progress.*
 
@@ -40,30 +41,29 @@ full loop:
 
 ## Headline results
 
-- **4** scenarios completed with the full exploit → detect → remediate → verify loop
-- **6** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/))
+- **5** scenarios completed with the full exploit → detect → remediate → verify loop
+- **7** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/))
 - **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
-- **GuardDuty native coverage:** 0 of 4 attack *techniques* detected natively; 3 of 4 scenarios flagged only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
+- **GuardDuty native coverage:** 0 of 5 attack *techniques* detected natively; only 3 of 5 scenarios flagged at all, and then only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
 
 ---
 
 ## Key findings
 
 - **Control-plane attacks hide from behaviour-based detection.** GuardDuty missed
-  every attack *technique* in this lab. It flagged credential and data
-  exfiltration in scenarios 2–4 (the symptom) but never the IAM privesc or the
-  SSRF that produced those credentials (the cause). Layered detection — native
-  *and* custom — is not optional.
+  every attack *technique* in this lab — IAM privesc, SSRF, and RDS snapshot
+  exfiltration all passed it by. It flagged only downstream credential/data
+  exfiltration in three scenarios. Layered detection — native *and* custom — is
+  not optional.
 - **IMDSv2 is not optional.** A single instance attribute
-  (`http_tokens = required`) defeats SSRF-based credential theft outright — the
-  exact class of attack behind the Capital One breach (scenario 4).
-- **`iam:PassRole` on `Resource: "*"` is a critical finding.** It is the quiet
-  enabler behind most AWS role-based escalation. Scoping it closes an entire
-  attack class.
+  (`http_tokens = required`) defeats SSRF-based credential theft — the exact class
+  of attack behind the Capital One breach (scenario 4).
+- **`iam:PassRole` on `*` and `rds:CreateDBSnapshot` are quiet escalation
+  primitives.** PassRole enables most role-based privesc; snapshot/restore lets an
+  attacker clone a database they can't log into. Scope both.
 - **Detection is a noise problem.** Several detections only became useful after
-  filtering out legitimate service traffic (e.g. Athena reading its own results
-  bucket). Real detection engineering is as much about suppressing false
-  positives as finding the signal.
+  filtering out legitimate service/admin traffic. Real detection engineering is
+  as much about suppressing false positives as finding the signal.
 
 ---
 
@@ -87,7 +87,7 @@ Setup evidence is in [`setup/`](setup/).
 ├── README.md        scenario summary, attack path, root cause, ATT&CK mapping
 ├── exploit/         commands + screenshots of the attack succeeding
 ├── detect/          Athena queries, Sigma rules, GuardDuty findings
-├── remediate/       Terraform fix + before/after diff
+├── remediate/       Terraform/IAM fix + before/after diff
 ├── verify/          the exploit re-run, now failing
 └── scans/           Prowler posture report
 writeups/            narrative incident-report write-ups
