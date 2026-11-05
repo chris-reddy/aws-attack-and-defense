@@ -34,6 +34,7 @@ full loop:
 | 3 | [`ec2_ssrf`](ec2_ssrf/) | SSRF → instance metadata credential theft | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/03-ec2-ssrf.md) |
 | 4 | [`cloud_breach_s3`](cloud_breach_s3/) | Reverse-proxy SSRF → metadata → S3 data breach | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/04-cloud-breach-s3.md) |
 | 5 | [`codebuild_secrets`](codebuild_secrets/) | CodeBuild secret leak → RDS snapshot exfiltration | ❌ Not detected | ✅ | [Read](writeups/05-codebuild-secrets.md) |
+| 6 | [`vulnerable_lambda`](vulnerable_lambda/) | SQL injection in Lambda → IAM privesc → Secrets Manager | ❌ Not detected | ✅ | [Read](writeups/06-vulnerable-lambda.md) |
 
 *More scenarios in progress.*
 
@@ -41,10 +42,10 @@ full loop:
 
 ## Headline results
 
-- **5** scenarios completed with the full exploit → detect → remediate → verify loop
-- **7** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/))
+- **6** scenarios completed with the full exploit → detect → remediate → verify loop
+- **8** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1555.006](https://attack.mitre.org/techniques/T1555/006/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/))
 - **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
-- **GuardDuty native coverage:** 0 of 5 attack *techniques* detected natively; only 3 of 5 scenarios flagged at all, and then only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
+- **GuardDuty native coverage:** 0 of 6 attack *techniques* detected natively; only 3 of 6 scenarios flagged at all, and then only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
 
 ---
 
@@ -61,6 +62,10 @@ full loop:
 - **`iam:PassRole` on `*` and `rds:CreateDBSnapshot` are quiet escalation
   primitives.** PassRole enables most role-based privesc; snapshot/restore lets an
   attacker clone a database they can't log into. Scope both.
+- **Injection reaches the control plane.** A Lambda that built a SQL query from
+  user input escalated a near-powerless user to account admin (scenario 6). Its
+  execution role could attach *any* managed policy; one `iam:PolicyARN` condition
+  would have stopped it. Parameterize queries and scope what service roles can grant.
 - **Detection is a noise problem.** Several detections only became useful after
   filtering out legitimate service/admin traffic. Real detection engineering is
   as much about suppressing false positives as finding the signal.
