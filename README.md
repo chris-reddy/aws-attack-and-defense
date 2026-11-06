@@ -35,6 +35,7 @@ full loop:
 | 4 | [`cloud_breach_s3`](cloud_breach_s3/) | Reverse-proxy SSRF → metadata → S3 data breach | ⚠️ Partial (exfil only) | ✅ | [Read](writeups/04-cloud-breach-s3.md) |
 | 5 | [`codebuild_secrets`](codebuild_secrets/) | CodeBuild secret leak → RDS snapshot exfiltration | ❌ Not detected | ✅ | [Read](writeups/05-codebuild-secrets.md) |
 | 6 | [`vulnerable_lambda`](vulnerable_lambda/) | SQL injection in Lambda → IAM privesc → Secrets Manager | ❌ Not detected | ✅ | [Read](writeups/06-vulnerable-lambda.md) |
+| 7 | [`ecs_takeover`](ecs_takeover/) | Container injection → metadata creds → ECS scheduler abuse | ⚠️ Partial (cred exfil) | ✅ | [Read](writeups/07-ecs-takeover.md) |
 
 *More scenarios in progress.*
 
@@ -42,10 +43,10 @@ full loop:
 
 ## Headline results
 
-- **6** scenarios completed with the full exploit → detect → remediate → verify loop
-- **8** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1555.006](https://attack.mitre.org/techniques/T1555/006/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/))
+- **7** scenarios completed with the full exploit → detect → remediate → verify loop
+- **10** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1555.006](https://attack.mitre.org/techniques/T1555/006/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/), [T1609](https://attack.mitre.org/techniques/T1609/), [T1613](https://attack.mitre.org/techniques/T1613/))
 - **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
-- **GuardDuty native coverage:** 0 of 6 attack *techniques* detected natively; only 3 of 6 scenarios flagged at all, and then only at the credential/data-exfiltration stage — demonstrating why custom control-plane detection is required alongside managed tooling
+- **GuardDuty native coverage:** 0 of 7 attack *techniques* detected natively; 4 of 7 scenarios flagged at all, and in every case only at the credential/data-exfiltration stage — never the technique itself — demonstrating why custom control-plane detection is required alongside managed tooling
 
 ---
 
@@ -66,6 +67,11 @@ full loop:
   user input escalated a near-powerless user to account admin (scenario 6). Its
   execution role could attach *any* managed policy; one `iam:PolicyARN` condition
   would have stopped it. Parameterize queries and scope what service roles can grant.
+- **Attackers recruit reliability features.** In scenario 7, the ECS service
+  scheduler's guarantee to keep a replica running became a *placement oracle*:
+  draining a node forced the target container to reschedule onto an attacker-owned
+  host. A privileged container (reaching the host IMDS) and an over-broad
+  `ecs:UpdateContainerInstancesState` permission made it possible — both avoidable.
 - **Detection is a noise problem.** Several detections only became useful after
   filtering out legitimate service/admin traffic. Real detection engineering is
   as much about suppressing false positives as finding the signal.
