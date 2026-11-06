@@ -37,8 +37,6 @@ full loop:
 | 6 | [`vulnerable_lambda`](vulnerable_lambda/) | SQL injection in Lambda → IAM privesc → Secrets Manager | ❌ Not detected | ✅ | [Read](writeups/06-vulnerable-lambda.md) |
 | 7 | [`ecs_takeover`](ecs_takeover/) | Container injection → metadata creds → ECS scheduler abuse | ⚠️ Partial (cred exfil) | ✅ | [Read](writeups/07-ecs-takeover.md) |
 
-*More scenarios in progress.*
-
 ---
 
 ## Headline results
