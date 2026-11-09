@@ -152,7 +152,7 @@ ORDER BY eventtime DESC;
 ![Athena — the DRAINING call](../ecs_takeover/detect/athena_drain.jpg)
 
 One row: the **ECS-agent instance role** setting a container instance to `DRAINING`
-from an **external IP** (`75.55.51.228`). A node's own role draining a node, from
+from an **external IP** (`203.0.113.10`). A node's own role draining a node, from
 off-box, is almost never legitimate — it's a maintenance action, and maintenance
 doesn't originate from the public internet.
 
@@ -171,7 +171,7 @@ ORDER BY eventtime ASC;
 ![Athena — the attack chain](../ecs_takeover/detect/athena_chain.jpg)
 
 The attacker rows — `ListClusters` → `ListTasks` → `DescribeTasks` (task role) →
-`UpdateContainerInstancesState` (agent role) — all come from `75.55.51.228`. But the
+`UpdateContainerInstancesState` (agent role) — all come from `203.0.113.10`. But the
 raw result also surfaced AWS-service callers (`AWSServiceRoleForResourceExplorer`,
 `GuardDutyRuntimeMonitoring`) from `*.amazonaws.com`. **Filtering out `iamadmin`
 isn't enough** — a production rule must also exclude AWS service principals and
@@ -181,7 +181,7 @@ suppressing legitimate noise as finding the signal.
 **GuardDuty** — for the first time in this series — **fired**: a HIGH-severity
 `UnauthorizedAccess:IAMUser/ResourceCredentialExfiltration.OutsideAWS` on the
 `privd` runtime role, flagging that its credentials were used from external IP
-`75.55.51.228`:
+`203.0.113.10`:
 
 ![GuardDuty finding](../ecs_takeover/detect/guardduty1.jpg)
 
