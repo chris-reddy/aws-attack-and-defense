@@ -1,0 +1,33 @@
+title: AWS S3 Object Access by Compute Role From External IP
+status: experimental
+description: >
+  Detects an instance/compute IAM role reading S3 objects from a source IP outside
+  the VPC - the exfiltration stage of the SSRF-to-metadata-to-S3 pattern behind the
+  2019 Capital One breach. Requires S3 data events enabled in CloudTrail.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: s3.amazonaws.com
+    eventName:
+      - GetObject
+      - ListObjects
+      - ListBuckets
+    userIdentity.type: AssumedRole
+  filter_internal:
+    sourceIPAddress|cidr:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+  filter_aws:
+    sourceIPAddress|endswith: .amazonaws.com
+  condition: selection and not filter_internal and not filter_aws
+falsepositives:
+  - Application roles designed to serve S3 content to external clients; scope to
+    roles that should only ever run on-instance
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1530
+  - attack.t1552.005

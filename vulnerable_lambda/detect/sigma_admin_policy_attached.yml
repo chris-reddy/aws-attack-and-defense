@@ -1,0 +1,21 @@
+title: AWS AdministratorAccess Attached to IAM User
+status: experimental
+description: >
+  Detects the AdministratorAccess managed policy being attached to an IAM user.
+  When performed by a service or Lambda execution role rather than a human
+  administrator, this is a strong privilege-escalation indicator.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: iam.amazonaws.com
+    eventName: AttachUserPolicy
+    requestParameters.policyArn|endswith: ':policy/AdministratorAccess'
+  condition: selection
+falsepositives:
+  - A human administrator intentionally granting admin access (should be rare and reviewed)
+level: critical
+tags:
+  - attack.privilege_escalation
+  - attack.t1098.003

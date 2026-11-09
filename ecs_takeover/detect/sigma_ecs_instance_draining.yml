@@ -1,0 +1,22 @@
+title: AWS ECS Container Instance Set to DRAINING
+status: experimental
+description: >
+  Detects an ECS container instance set to DRAINING via UpdateContainerInstancesState.
+  Attackers abuse this maintenance action to force a target task to reschedule onto a
+  compromised host. Rare and high-signal from non-admin principals or external IPs.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: ecs.amazonaws.com
+    eventName: UpdateContainerInstancesState
+    requestParameters.status: DRAINING
+  condition: selection
+falsepositives:
+  - Legitimate node maintenance by operations or autoscaling; tune by excluding
+    known admin principals and expected source IPs
+level: high
+tags:
+  - attack.lateral_movement
+  - attack.t1613

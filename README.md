@@ -19,7 +19,7 @@ full loop:
 **Exploit → Detect → Remediate → Verify**
 
 - **Exploit** — the attack path, with the exact commands and the misconfiguration behind it.
-- **Detect** — the CloudTrail events the attack generated, the Athena query that catches them, and whether GuardDuty saw it natively.
+- **Detect** — the CloudTrail events the attack generated, the Athena query (and Sigma rule) that catches them, and whether GuardDuty saw it natively.
 - **Remediate** — the fix written as Terraform/IAM, with a before/after diff.
 - **Verify** — the original exploit re-run, now failing.
 
@@ -43,7 +43,7 @@ full loop:
 
 - **7** scenarios completed with the full exploit → detect → remediate → verify loop
 - **10** MITRE ATT&CK techniques mapped ([T1078](https://attack.mitre.org/techniques/T1078/), [T1098](https://attack.mitre.org/techniques/T1098/), [T1190](https://attack.mitre.org/techniques/T1190/), [T1530](https://attack.mitre.org/techniques/T1530/), [T1552.001](https://attack.mitre.org/techniques/T1552/001/), [T1552.005](https://attack.mitre.org/techniques/T1552/005/), [T1555.006](https://attack.mitre.org/techniques/T1555/006/), [T1578.001](https://attack.mitre.org/techniques/T1578/001/), [T1609](https://attack.mitre.org/techniques/T1609/), [T1613](https://attack.mitre.org/techniques/T1613/))
-- **Custom CloudTrail/Athena detections for every scenario**, plus a Sigma rule for the IAM privesc detection
+- **Custom CloudTrail/Athena detections for every scenario**, with Sigma rule equivalents
 - **GuardDuty native coverage:** 0 of 7 attack *techniques* detected natively; 4 of 7 scenarios flagged at all, and in every case only at the credential/data-exfiltration stage — never the technique itself — demonstrating why custom control-plane detection is required alongside managed tooling
 
 ---

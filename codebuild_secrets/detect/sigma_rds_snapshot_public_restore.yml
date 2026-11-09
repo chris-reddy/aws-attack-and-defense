@@ -1,0 +1,21 @@
+title: AWS RDS Snapshot Restored as Publicly Accessible
+status: experimental
+description: >
+  Detects an RDS snapshot restored as a new publicly-accessible instance - the core
+  of database exfiltration by snapshot, where an attacker clones a private database
+  they cannot log into and exposes their copy to the internet.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    eventSource: rds.amazonaws.com
+    eventName: RestoreDBInstanceFromDBSnapshot
+    requestParameters.publiclyAccessible: true
+  condition: selection
+falsepositives:
+  - Legitimate restore of a database intended to be public (rare; should be reviewed)
+level: high
+tags:
+  - attack.exfiltration
+  - attack.t1578.001

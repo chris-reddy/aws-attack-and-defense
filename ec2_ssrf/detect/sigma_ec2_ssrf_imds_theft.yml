@@ -1,0 +1,29 @@
+title: AWS EC2 Instance Role Credentials Used From External IP
+status: experimental
+description: >
+  Detects temporary credentials belonging to an EC2 instance role being used from
+  a source IP outside the VPC - the signature of IMDS credential theft via SSRF,
+  where stolen role credentials are replayed from the attacker's own host.
+logsource:
+  product: aws
+  service: cloudtrail
+detection:
+  selection:
+    userIdentity.type: AssumedRole
+    userIdentity.sessionContext.sessionIssuer.type: Role
+  filter_internal:
+    sourceIPAddress|cidr:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+  filter_aws:
+    sourceIPAddress|endswith: .amazonaws.com
+  condition: selection and not filter_internal and not filter_aws
+falsepositives:
+  - Roles legitimately assumed from outside the VPC by users or CI/CD; scope to
+    instance/compute roles and known egress IPs to reduce noise
+level: high
+tags:
+  - attack.credential_access
+  - attack.t1552.005
+  - attack.t1078
